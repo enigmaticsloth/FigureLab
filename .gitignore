@@ -1,0 +1,7 @@
+# Build artifacts
+FigureLab.app/
+mac-app/icon.iconset/
+mac-app/.bin-*
+
+# macOS
+.DS_Store
