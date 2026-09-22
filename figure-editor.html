@@ -193,6 +193,20 @@ input[type=checkbox]{accent-color:var(--acc); width:14px; height:14px;}
 }
 .lrow .lkind{flex:0 0 auto; color:var(--mut); font-size:11px; opacity:.75;}
 #layerEmpty{color:var(--mut); padding:2px 6px;}
+/* ---------- context menu ---------- */
+#ctxMenu{
+  position:fixed; z-index:100; min-width:172px; display:none;
+  background:var(--panel2); border:1px solid var(--line); border-radius:10px;
+  padding:5px; box-shadow:0 12px 32px rgba(0,0,0,.5);
+}
+#ctxMenu.open{display:block;}
+#ctxMenu button{
+  display:flex; width:100%; align-items:center; justify-content:space-between;
+  gap:18px; padding:5px 10px; border-radius:6px; text-align:left;
+}
+#ctxMenu button:hover:not(:disabled){background:var(--accSoft);}
+#ctxMenu button .k{color:var(--mut); font-size:11px; font-variant-numeric:tabular-nums;}
+#ctxMenu .cm-sep{height:1px; background:var(--line); margin:5px 6px;}
 /* ---------- status bar ---------- */
 #statusbar{
   display:flex; align-items:center; gap:10px; padding:4px 10px;
@@ -241,6 +255,12 @@ dialog .close{margin-top:14px; float:right;}
             <option value="1200">1200 ppi</option>
           </select>
         </div>
+        <div class="row"><span>列印寬度 mm</span>
+          <input type="number" id="expWidth" min="1" step="1" style="width:92px;" aria-label="匯出列印寬度（mm；留空沿用畫布）">
+        </div>
+        <div class="row"><label class="chk" title="依原圖像素自動提高 ppi，保持列印尺寸；自動模式最多約 6400 萬像素">
+          <input type="checkbox" id="expDetail" checked>保留原圖細節（自動提高 ppi）
+        </label></div>
         <div class="row"><span>JPEG 品質</span>
           <input type="range" id="expQ" min="60" max="100" step="1" value="92" style="flex:1;">
           <span class="val" id="expQVal">92</span>
@@ -470,7 +490,9 @@ dialog .close{margin-top:14px; float:right;}
         <div class="prow"><label>字體</label>
           <select id="inFam">
             <option value="sans">黑體 Sans</option>
+            <option value="arial">Arial</option>
             <option value="serif">襯線 Serif</option>
+            <option value="times">Times New Roman</option>
             <option value="mono">等寬 Mono</option>
           </select>
         </div>
@@ -483,7 +505,7 @@ dialog .close{margin-top:14px; float:right;}
       </div>
 
       <div class="sec" id="sec-pos">
-        <h4>位置與尺寸</h4>
+        <h4>位置與尺寸 <span id="posSelInfo" style="color:var(--mut); font-weight:400;"></span></h4>
         <div class="posgrid">
           <span>X</span><input type="number" id="inX" step="1">
           <span>Y</span><input type="number" id="inY" step="1">
@@ -491,6 +513,11 @@ dialog .close{margin-top:14px; float:right;}
           <span>高</span><input type="number" id="inH" step="1" min="1">
           <span>旋轉</span><input type="number" id="inRot" step="1">
           <span></span><span></span>
+        </div>
+        <div class="prow" style="margin-top:9px;">
+          <label class="chk" title="開啟時，拖曳控制點或輸入寬高都會維持原始比例">
+            <input type="checkbox" id="inAspect" checked>等比例縮放
+          </label>
         </div>
       </div>
 
@@ -530,6 +557,8 @@ dialog .close{margin-top:14px; float:right;}
     <span id="cvSize"></span>
   </footer>
 </div>
+
+<div id="ctxMenu"></div>
 
 <dialog id="newDlg">
   <h3>新檔案</h3>
@@ -589,11 +618,12 @@ dialog .close{margin-top:14px; float:right;}
     <tr><td>節點編輯</td><td>畫一條直線後<b>雙擊它</b>（或選取後按 <kbd>N</kbd>）進入節點編輯：點線上任一處新增節點，拖動節點把線彎成弧形，多個節點即可拉成蛇形；連點兩下節點刪除，<kbd>Shift</kbd> 拖曳可對齊相鄰節點，<kbd>Esc</kbd> 結束。右側可切換「曲線／折線」</td></tr>
     <tr><td>箭頭</td><td>線條與曲線的起點、終點可各自開關箭頭，大小用「箭頭 → 大小」調整（0.4–3.2 倍）</td></tr>
     <tr><td>虛線</td><td>樣式選「虛線」或「點線」後，可分別調整線段長與間隔</td></tr>
-    <tr><td>文字</td><td><kbd>T</kbd> 後點擊畫布輸入；選取工具下雙擊文字可編輯；<kbd>Esc</kbd> 取消、點擊他處完成</td></tr>
-    <tr><td>選取</td><td>點擊選取、<kbd>Shift</kbd>+點擊多選、空白處拖曳框選、<kbd>⌘A</kbd> 全選</td></tr>
+    <tr><td>文字</td><td><kbd>T</kbd> 後點擊畫布輸入；選取工具下<b>點一下文字直接編輯，按住拖曳則移動</b>（群組內的文字用雙擊編輯）；<kbd>Esc</kbd> 取消、點擊他處完成。完成後自動切回選取工具</td></tr>
+    <tr><td>選取</td><td>點擊選取、<kbd>Shift</kbd>+點擊多選、空白處拖曳框選、<kbd>⌘A</kbd> 全選；<b>右鍵</b>開啟選單（群組、剪貼、排列順序）</td></tr>
+    <tr><td>群組</td><td>多選後 <kbd>⌘G</kbd> 群組、<kbd>⇧⌘G</kbd> 解除群組（或按右鍵選單）。群組後點擊任一成員會選取整組，一起移動、複製與刪除；圖層面板點擊仍可單獨選取成員</td></tr>
     <tr><td>編輯</td><td><kbd>⌘Z</kbd> 復原　<kbd>⇧⌘Z</kbd> 重做　<kbd>⌘C</kbd>/<kbd>⌘V</kbd> 複製貼上　<kbd>⌘D</kbd> 再製　<kbd>Delete</kbd> 刪除</td></tr>
     <tr><td>微調</td><td>方向鍵移動 1px，<kbd>Shift</kbd>+方向鍵移動 10px</td></tr>
-    <tr><td>變形</td><td>拖曳控制點縮放（圖片預設鎖定比例，<kbd>Shift</kbd> 解除；形狀 <kbd>Shift</kbd> 鎖定）；上方圓點旋轉（<kbd>Shift</kbd> 每 15° 吸附）</td></tr>
+    <tr><td>變形</td><td>右側「等比例縮放」可鎖定寬高比例；單選或框選多個物件後，都能拖曳選取框控制點一起縮放。<kbd>Shift</kbd> 暫時反轉比例鎖，<kbd>⌥ Option</kbd> 一律等比；上方圓點旋轉時按 <kbd>Shift</kbd> 每 15° 吸附</td></tr>
     <tr><td>畫面縮放</td><td><b>觸控板雙指捏合</b>可縮放畫布（縮放以游標所在位置為中心）；也可用 <kbd>⌘</kbd>+滾輪、<kbd>⌘+</kbd>／<kbd>⌘-</kbd>、或右下角的縮放控制</td></tr>
     <tr><td>畫面平移</td><td>觸控板雙指滑動、滑鼠滾輪、或 <kbd>空白鍵</kbd>+拖曳；<kbd>⌘0</kbd> 適合視窗、<kbd>⌘1</kbd> 實際大小</td></tr>
     <tr><td>新檔案</td><td>「新檔案」可選 A4 直式／橫式、A3、期刊單欄／雙欄，或自訂 mm 尺寸與解析度；每次建立都會開一個新分頁</td></tr>
@@ -674,7 +704,9 @@ const defaults = { stroke:'#22252b', sw:3, dash:'solid', fill:'#cfe0ff', noFill:
                    color:'#22252b', opacity:1 };
 const FAMS = {
   sans:'Helvetica, Arial, "PingFang TC", "Noto Sans TC", sans-serif',
+  arial:'Arial, "Helvetica Neue", "PingFang TC", "Noto Sans TC", sans-serif',
   serif:'Georgia, "Times New Roman", "Songti TC", "Noto Serif TC", serif',
+  times:'"Times New Roman", Times, "Songti TC", "Noto Serif TC", serif',
   mono:'Menlo, Consolas, "Courier New", monospace'
 };
 // Present only inside the macOS app shell; null in any browser, which keeps
@@ -773,7 +805,13 @@ function patch(node, spec){
   if(!node || node._key !== spec.key){
     const n = build(spec); n._key = spec.key; return n;
   }
-  setAttrs(node, spec.attrs || {});
+  // Attributes only present in the previous spec (e.g. display:none while a
+  // text shape is being edited) must be removed, or they stick forever.
+  const attrs = spec.attrs || {};
+  for(const k in node._a){
+    if(node._a[k] != null && !(k in attrs)){ node.removeAttribute(k); node._a[k] = null; }
+  }
+  setAttrs(node, attrs);
   if(spec.text != null && node.textContent !== spec.text) node.textContent = spec.text;
   (spec.children || []).forEach((c, i) => {
     const cur = node.childNodes[i], r = patch(cur, c);
@@ -797,12 +835,12 @@ function rotAttr(s){
   const c = shapeCenter(s);
   return `rotate(${s.rot} ${c.x} ${c.y})`;
 }
-function specFor(s){
+function specFor(s, exporting = false){
   const g = { tag:'g', key:s.type, attrs:{ 'data-id':s.id, opacity:s.opacity===1?null:s.opacity }, children:[] };
   if(s.type === 'image'){
     g.attrs.transform = rotAttr(s);
     g.children = [{ tag:'image', attrs:{ x:s.x, y:s.y, width:s.w, height:s.h,
-      href:assets[s.asset] || '', preserveAspectRatio:'none' } }];
+      href:(!exporting && Math.max(s.w,s.h)*view.z <= 2048 && imgCache[s.asset]?.previewURL) || assets[s.asset] || '', preserveAspectRatio:'none' } }];
   } else if(s.type === 'line'){
     const dx = s.x2-s.x1, dy = s.y2-s.y1, len = Math.hypot(dx,dy) || 1;
     const ux = dx/len, uy = dy/len, L = arrowLen(s.sw, s.as)*0.65;
@@ -858,7 +896,7 @@ function specFor(s){
     const lines = String(s.text).split('\n');
     g.key = 'text' + lines.length;
     g.attrs.transform = rotAttr(s);
-    if(editingTextId === s.id) g.attrs.display = 'none';
+    if(!exporting && editingTextId === s.id) g.attrs.display = 'none';
     g.children = [
       { tag:'rect', attrs:{ x:s.x-3, y:s.y-3, width:(s.w||10)+6, height:(s.h||10)+6,
         fill:'rgba(0,0,0,0)', 'data-hit':'1' } },
@@ -878,6 +916,7 @@ function updateViewBox(){
   svg.setAttribute('viewBox', `${view.x} ${view.y} ${Math.max(1,r.width)/view.z} ${Math.max(1,r.height)/view.z}`);
   $('zoomPct').textContent = Math.round(view.z*100) + '%';
 }
+let boardKey = '';
 function render(){
   updateViewBox();
   // artboard
@@ -889,13 +928,17 @@ function render(){
       `<rect x="${sq}" y="${sq}" width="${sq}" height="${sq}" fill="#d9dde3"></rect>` +
       `</pattern></defs><rect x="0" y="0" width="${doc.w}" height="${doc.h}" fill="url(#checker)"></rect>`
     : `<rect x="0" y="0" width="${doc.w}" height="${doc.h}" fill="${doc.bg}"></rect>`;
-  boardLayer.innerHTML =
+  const nextBoardKey = [doc.w, doc.h, doc.bg, doc.transparent, view.z].join('|');
+  if(nextBoardKey !== boardKey){
+    boardKey = nextBoardKey;
+    boardLayer.innerHTML =
     `<rect x="${4/view.z}" y="${4/view.z}" width="${doc.w}" height="${doc.h}" fill="rgba(0,0,0,.35)"></rect>` +
     board +
     `<rect x="0" y="0" width="${doc.w}" height="${doc.h}" fill="none" stroke="rgba(0,0,0,.4)" stroke-width="${1/view.z}"></rect>`;
+  }
   // shapes (keyed patch)
   const old = {}; [...shapesLayer.children].forEach(n => old[n.getAttribute('data-id')] = n);
-  const frag = document.createDocumentFragment();
+  let cursor = shapesLayer.firstElementChild;
   for(const s of doc.shapes){
     if(s.hidden) continue;
     if(warpState && warpState.id === s.id) continue;   // the overlay shows the preview
@@ -903,17 +946,26 @@ function render(){
     const prev = old[s.id]; delete old[s.id];
     const node = patch(prev || null, spec);
     node._key = spec.key;
-    frag.appendChild(node);
+    if(prev && prev !== node){
+      if(cursor === prev) cursor = prev.nextElementSibling;
+      prev.remove();
+    }
+    // Keep existing image nodes attached: reparenting them on every mouse move
+    // makes WebKit repeatedly rebuild large decoded image surfaces.
+    if(node !== cursor) shapesLayer.insertBefore(node, cursor);
+    cursor = node.nextElementSibling;
   }
-  shapesLayer.replaceChildren(frag);
+  Object.values(old).forEach(n => n.remove());
   // measure text shapes
   for(const s of doc.shapes){
     if(s.type !== 'text' || s.hidden) continue;
     const gEl = shapesLayer.querySelector(`g[data-id="${s.id}"]`);
     const tEl = gEl && gEl.querySelector('[data-txt]');
-    if(tEl){
+    const metricsKey = JSON.stringify([s.text,s.size,s.family,s.bold,s.italic]);
+    if(tEl && editingTextId !== s.id && gEl._metricsKey !== metricsKey){
       try{
         const bb = tEl.getBBox();
+        gEl._metricsKey = metricsKey;
         if(Math.abs((s.w||0)-bb.width) > .5 || Math.abs((s.h||0)-bb.height) > .5){
           s.w = bb.width; s.h = bb.height;
           const hit = gEl.querySelector('[data-hit]');
@@ -1013,8 +1065,9 @@ function renderOverlay(){
       nodeEdit = null;
     }
   }
-  // selection outlines
+  // selection outlines (never hit targets — they overlap the shapes they mark)
   if(!cropState && !nodeEdit){
+    o += `<g pointer-events="none">`;
     for(const id of sel){
       const s = byId(id); if(!s) continue;
       if(s.type === 'line'){
@@ -1027,6 +1080,7 @@ function renderOverlay(){
         o += `<g${tr}><rect x="${s.x}" y="${s.y}" width="${s.w}" height="${s.h}" fill="none" ${accStroke}></rect></g>`;
       }
     }
+    o += `</g>`;
     // single-selection handles
     if(sel.length === 1){
       const s = byId(sel[0]);
@@ -1063,12 +1117,13 @@ function renderOverlay(){
       }
     } else if(sel.length > 1){
       const b = boundsOf(sel);
-      o += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="none" ${accStroke} stroke-dasharray="${5/z},${4/z}"></rect>`;
+      o += `<rect x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" fill="none" ${accStroke} stroke-dasharray="${5/z},${4/z}" pointer-events="none"></rect>`;
+      if(b.w > 0.01 && b.h > 0.01) o += `<g>${handleRects(b, 0, 0, 0, false)}</g>`;
     }
   }
   // smart alignment guides
   for(const g of guides){
-    const gs = `stroke="#ff4d9d" stroke-width="${1/z}" stroke-dasharray="${6/z},${4/z}"`;
+    const gs = `stroke="#ff4d9d" stroke-width="${1/z}" stroke-dasharray="${6/z},${4/z}" pointer-events="none"`;
     o += g.vert
       ? `<line x1="${g.pos}" y1="${g.a - 12/z}" x2="${g.pos}" y2="${g.b + 12/z}" ${gs}></line>`
       : `<line x1="${g.a - 12/z}" y1="${g.pos}" x2="${g.b + 12/z}" y2="${g.pos}" ${gs}></line>`;
@@ -1148,36 +1203,80 @@ function restore(s){
 function undo(){ if(!undoStack.length) return; redoStack.push(snapshot()); restore(undoStack.pop()); }
 function redo(){ if(!redoStack.length) return; undoStack.push(snapshot()); restore(redoStack.pop()); }
 
-let saveTimer = null, autosaveWarned = false;
+let saveTimer = null, autosaveWarned = false, autosaveReady = false;
+let autosaveDBPromise = null, lastSavedSession = '';
+const savedAssetValues = new Map();
+function autosaveDB(){
+  if(!autosaveDBPromise) autosaveDBPromise = new Promise((resolve,reject) => {
+    const req = indexedDB.open('figurelab', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('state');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+  return autosaveDBPromise;
+}
+function readSaved(db, key){
+  return new Promise((resolve,reject) => {
+    const req = db.transaction('state').objectStore('state').get(key);
+    req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject(req.error);
+  });
+}
 function scheduleAutosave(){
+  if(!autosaveReady) return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
+  saveTimer = setTimeout(async () => {
+    if(drag || editingTextId){ scheduleAutosave(); return; }
     try{
       commitTab();
       const used = new Set();
       tabs.forEach(t => t.doc.shapes.forEach(sh => sh.asset && used.add(sh.asset)));
-      const a = {}; used.forEach(k => a[k] = assets[k]);
-      localStorage.setItem('figurelab-autosave', JSON.stringify({
-        v:2, activeTab,
-        tabs: tabs.map(t => ({ name:t.name, doc:t.doc, view:t.view })),
-        assets: a
-      }));
+      const session = { v:2, activeTab,
+        tabs:tabs.map(t => ({ name:t.name, doc:t.doc, view:t.view })), assetIds:[...used] };
+      const key = JSON.stringify(session);
+      const changed = [...used].filter(id => savedAssetValues.get(id) !== assets[id]);
+      if(key === lastSavedSession && !changed.length) return;
+      const db = await autosaveDB();
+      const values = changed.map(id => [id,assets[id]]);
+      // Asset data is written only when it changes, in the same transaction as
+      // the layout. Dragging no longer serializes megabytes into localStorage.
+      await new Promise((resolve,reject) => {
+        const tx = db.transaction('state','readwrite'), store = tx.objectStore('state');
+        values.forEach(([id,value]) => store.put(value,'asset:'+id));
+        store.put(JSON.parse(key),'session');
+        tx.oncomplete = resolve;
+        tx.onabort = () => reject(tx.error);
+        tx.onerror = () => reject(tx.error);
+      });
+      values.forEach(([id,value]) => savedAssetValues.set(id,value));
+      lastSavedSession = key;
       autosaveWarned = false;
     }catch(e){
-      // High-res images can exceed the ~5MB localStorage quota; tell the user once
-      // so they know to keep their own backup instead of relying on autosave.
       if(!autosaveWarned){
         autosaveWarned = true;
-        $('hint').textContent = '⚠ 圖片較大，超過瀏覽器自動儲存上限——請用「儲存專案」自行備份。';
+        $('hint').textContent = '⚠ 自動儲存失敗，請用「儲存專案」備份。';
       }
     }
   }, 900);
 }
-function tryRestoreAutosave(){
+async function tryRestoreAutosave(){
   try{
-    const raw = localStorage.getItem('figurelab-autosave');
-    if(!raw) return false;
-    const data = JSON.parse(raw);
+    let data;
+    try{
+      const db = await autosaveDB();
+      data = await readSaved(db,'session');
+      if(data){
+        const pairs = await Promise.all(data.assetIds.map(async id => [id,await readSaved(db,'asset:'+id)]));
+        if(pairs.some(([,value]) => !value)) throw new Error('Incomplete autosave');
+        data.assets = Object.fromEntries(pairs);
+        pairs.forEach(([id,value]) => savedAssetValues.set(id,value));
+      }
+    }catch(e){ data = null; }
+    if(!data){
+      const raw = localStorage.getItem('figurelab-autosave');
+      if(!raw) return false;
+      data = JSON.parse(raw);       // read legacy projects without deleting them
+    }
     assets = data.assets || {};
     if(data.v === 2 && Array.isArray(data.tabs) && data.tabs.length){
       tabs = data.tabs.map((t, i) => ({
@@ -1198,19 +1297,46 @@ function tryRestoreAutosave(){
 function ensureAssetsCached(){
   const all = tabs.length ? tabs.flatMap(t => t.doc.shapes) : doc.shapes;
   for(const s of all){
-    if(s.type === 'image' && s.asset && !imgCache[s.asset] && assets[s.asset]){
+    if(s.type === 'image' && s.asset && assets[s.asset]){
       loadAsset(s.asset);
     }
   }
 }
+const assetLoads = new Map();
+function preparePreview(cache){
+  if(!cache.el || cache.previewPending || cache.previewURL) return;
+  cache.previewPending = true;
+  const canvas = document.createElement('canvas');
+  const f = Math.min(1, 2048 / Math.max(cache.w, cache.h));
+  canvas.width = Math.max(1, Math.round(cache.w*f));
+  canvas.height = Math.max(1, Math.round(cache.h*f));
+  const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(cache.el, 0, 0, canvas.width, canvas.height);
+  canvas.toBlob(blob => {
+    if(blob) cache.previewURL = URL.createObjectURL(blob);
+    canvas.width = canvas.height = 1;
+    updateExportInfo();
+    scheduleRender();
+  }, 'image/png');
+}
 function loadAsset(id){
-  return new Promise(res => {
-    if(imgCache[id]) return res(imgCache[id]);
+  if(imgCache[id]?.el){ preparePreview(imgCache[id]); return Promise.resolve(imgCache[id]); }
+  if(assetLoads.has(id)) return assetLoads.get(id);
+  const pending = new Promise(res => {
+    if(!assets[id]) return res(null);
     const im = new Image();
-    im.onload = () => { imgCache[id] = { el:im, w:im.naturalWidth, h:im.naturalHeight }; res(imgCache[id]); };
+    im.onload = () => {
+      const cache = imgCache[id] = { el:im, w:im.naturalWidth, h:im.naturalHeight };
+      preparePreview(cache);
+      res(cache);
+    };
     im.onerror = () => res(null);
     im.src = assets[id];
   });
+  assetLoads.set(id, pending);
+  pending.finally(() => assetLoads.delete(id));
+  return pending;
 }
 
 /* ================= tabs =================
@@ -1268,11 +1394,12 @@ function closeTab(i){
 }
 function renderTabs(){
   const bar = $('tabbar');
-  bar.innerHTML = tabs.map((t, i) =>
+  const markup = tabs.map((t, i) =>
     `<div class="tab${i === activeTab ? ' on' : ''}" data-i="${i}" title="${esc(t.name)}">` +
     `<span class="tname">${esc(t.name)}</span>` +
     `<button class="tclose" data-close="${i}" title="關閉分頁">×</button></div>`).join('') +
     `<button id="tabAdd" title="新增分頁 (⌘N)">＋</button>`;
+  if(bar._markup !== markup){ bar.innerHTML = markup; bar._markup = markup; }
   bar.style.display = 'flex';
 }
 $('tabbar').addEventListener('click', e => {
@@ -1295,7 +1422,7 @@ function renameActiveTab(name){
 
 /* ================= tools ================= */
 const HINTS = {
-  select:'點擊選取；Shift 多選；拖曳框選；雙擊文字可編輯。',
+  select:'點擊選取；Shift 多選；拖曳框選；拖曳選取框控制點縮放（右側可鎖定比例）；右鍵開選單。',
   crop:'點擊一張圖片開始裁切。',
   line:'拖曳畫直線；Shift 吸附 45°。',
   arrow:'拖曳畫箭頭；Shift 吸附 45°。可在右側切換起／終點箭頭。',
@@ -1303,7 +1430,7 @@ const HINTS = {
   ellipse:'拖曳畫橢圓；Shift 畫正圓。',
   curve:'逐點點擊路徑；Enter 或連點兩下完成；Esc 取消。',
   pencil:'按住拖曳手繪，放開完成。',
-  text:'點擊畫布輸入文字；點擊他處完成。'
+  text:'點擊畫布輸入文字；點擊他處完成並自動切回選取工具。'
 };
 function setToolButtons(t){
   document.querySelectorAll('.tool[data-tool]').forEach(b => b.classList.toggle('on', b.dataset.tool === t));
@@ -1334,14 +1461,52 @@ function deleteSel(){
 function duplicateSel(offset = 24){
   if(!sel.length) return;
   pushHistory();
+  const gmap = {};   // copies of a group stay grouped, but as a new group
   const copies = sel.map(id => byId(id)).filter(Boolean).map(s => {
-    const c = clone(s); c.id = uid(); moveShapeBy(c, offset, offset); return c;
+    const c = clone(s); c.id = uid(); moveShapeBy(c, offset, offset);
+    if(c.group) c.group = gmap[c.group] || (gmap[c.group] = 'grp' + (uidN++));
+    return c;
   });
   doc.shapes.push(...copies);
   sel = copies.map(c => c.id);
   render(); syncPanel();
 }
 function selectAll(){ sel = doc.shapes.filter(s => !s.hidden).map(s => s.id); render(); syncPanel(); }
+
+/* ================= groups =================
+   A group is just a shared tag: clicking any member on the canvas selects the
+   whole group, so it moves, deletes and duplicates as one unit. */
+function groupMembers(id){
+  const s = byId(id);
+  if(!s || !s.group) return [id];
+  return doc.shapes.filter(x => x.group === s.group).map(x => x.id);
+}
+const expandIds = ids => [...new Set(ids.flatMap(groupMembers))];
+function groupSel(){
+  const ids = expandIds(sel);
+  if(ids.length < 2) return;
+  pushHistory();
+  const gid = 'grp' + (uidN++);
+  const inSel = s => ids.includes(s.id);
+  // members become one contiguous block, kept at the topmost member's depth
+  let top = -1; doc.shapes.forEach((s, i) => { if(inSel(s)) top = i; });
+  const above = doc.shapes.slice(top + 1).filter(s => !inSel(s)).length;
+  const members = doc.shapes.filter(inSel), rest = doc.shapes.filter(s => !inSel(s));
+  members.forEach(s => s.group = gid);
+  rest.splice(rest.length - above, 0, ...members);
+  doc.shapes = rest;
+  sel = ids;
+  render(); syncPanel();
+}
+function ungroupSel(){
+  const ids = expandIds(sel);
+  const grouped = ids.map(byId).filter(s => s && s.group);
+  if(!grouped.length) return;
+  pushHistory();
+  grouped.forEach(s => delete s.group);
+  sel = ids;
+  render(); syncPanel();
+}
 function zorder(op){
   if(!sel.length) return;
   pushHistory();
@@ -1575,6 +1740,10 @@ function newStyleShape(base){
 svg.addEventListener('pointerdown', e => {
   if(e.button === 2) return;
   svg.setPointerCapture(e.pointerId);
+  // Capture retargets pointerup to the svg root, so the browser never fires
+  // click/dblclick here — remember the real press target and position to
+  // synthesise double-clicks ourselves (see pointerup).
+  pdInfo = { x:e.clientX, y:e.clientY, target:e.target };
   const pt = toWorld(e);
   if(editingTextId){ commitTextEdit(); }
   // pan
@@ -1649,6 +1818,12 @@ svg.addEventListener('pointerdown', e => {
   }
 
   if(tool === 'select'){
+    if(handle && sel.length > 1){
+      pushHistory();
+      drag = { mode:'group-resize', handle, origBounds:boundsOf(sel),
+               orig:Object.fromEntries(sel.map(id => [id, clone(byId(id))])) };
+      return;
+    }
     if(handle && sel.length === 1){
       const s = byId(sel[0]);
       pushHistory();
@@ -1669,15 +1844,17 @@ svg.addEventListener('pointerdown', e => {
       return;
     }
     if(hitId){
+      const hitIds = groupMembers(hitId);   // a grouped shape selects its whole group
       if(e.shiftKey){
-        sel = sel.includes(hitId) ? sel.filter(i => i !== hitId) : [...sel, hitId];
+        sel = sel.includes(hitId) ? sel.filter(i => !hitIds.includes(i)) : [...new Set([...sel, ...hitIds])];
         render(); syncPanel();
         if(!sel.includes(hitId)) return;
       } else if(!sel.includes(hitId)){
-        sel = [hitId]; render(); syncPanel();
+        sel = hitIds; render(); syncPanel();
       }
       pushHistory();
-      drag = { mode:'move', start:pt, moved:false,
+      drag = { mode:'move', start:pt, moved:false, hitId,
+               shift:e.shiftKey, cx:e.clientX, cy:e.clientY,
                orig:Object.fromEntries(sel.map(id => [id, clone(byId(id))])),
                origBounds: boundsOf(sel), targets: snapTargets(sel) };
     } else {
@@ -1775,7 +1952,7 @@ svg.addEventListener('pointermove', e => {
       const b = shapeBounds(s);
       return b.x < r.x + r.w && b.x + b.w > r.x && b.y < r.y + r.h && b.y + b.h > r.y;
     }).map(s => s.id);
-    sel = [...new Set([...drag.baseSel, ...hitIds])];
+    sel = expandIds([...drag.baseSel, ...hitIds]);
     scheduleRender(); return;
   }
   if(m === 'new-line'){
@@ -1865,27 +2042,77 @@ svg.addEventListener('pointermove', e => {
     scheduleRender(); syncPosInputs(); return;
   }
   if(m === 'resize'){
-    doResize(byId(drag.id), drag, pt, e.shiftKey);
+    doResize(byId(drag.id), drag, pt, e.shiftKey, e.altKey);
+    scheduleRender(); syncPosInputs(); return;
+  }
+  if(m === 'group-resize'){
+    doGroupResize(drag, pt, e.shiftKey, e.altKey);
     scheduleRender(); syncPosInputs(); return;
   }
   if(m === 'crop-move' || m === 'crop-resize'){
     doCropDrag(pt, e); scheduleRender(); return;
   }
 });
-function doResize(s, dg, pt, shift){
+function shouldKeepAspect(shift, alt){
+  return alt || ($('inAspect').checked ? !shift : shift);
+}
+function resizeFactors(b, hnd, pt, keepAspect){
+  const sxs = hnd.includes('w') ? -1 : hnd.includes('e') ? 1 : 0;
+  const sys = hnd.includes('n') ? -1 : hnd.includes('s') ? 1 : 0;
+  const hx = sxs < 0 ? b.x : sxs > 0 ? b.x+b.w : b.x+b.w/2;
+  const hy = sys < 0 ? b.y : sys > 0 ? b.y+b.h : b.y+b.h/2;
+  const ax = sxs < 0 ? b.x+b.w : sxs > 0 ? b.x : b.x+b.w/2;
+  const ay = sys < 0 ? b.y+b.h : sys > 0 ? b.y : b.y+b.h/2;
+  let fx = sxs && Math.abs(hx-ax) > 0.01 ? (pt.x-ax)/(hx-ax) : 1;
+  let fy = sys && Math.abs(hy-ay) > 0.01 ? (pt.y-ay)/(hy-ay) : 1;
+  if(keepAspect){
+    let f;
+    if(sxs && sys){
+      const vx = hx-ax, vy = hy-ay;
+      const d2 = vx*vx + vy*vy;
+      f = d2 > 0.0001 ? ((pt.x-ax)*vx + (pt.y-ay)*vy) / d2 : 1;
+    } else {
+      f = sxs ? fx : fy;
+    }
+    fx = fy = f;
+  }
+  return { ax, ay, fx:Math.max(0.01, fx), fy:Math.max(0.01, fy) };
+}
+function scaleShapeAround(s, o, ax, ay, fx, fy){
+  const map = p => ({ x:ax + (p.x-ax)*fx, y:ay + (p.y-ay)*fy });
+  if(o.type === 'line'){
+    const p1 = map({x:o.x1,y:o.y1}), p2 = map({x:o.x2,y:o.y2});
+    s.x1=p1.x; s.y1=p1.y; s.x2=p2.x; s.y2=p2.y;
+  } else if(o.type === 'path'){
+    s.pts = o.pts.map(map);
+  } else {
+    const c = map(shapeCenter(o));
+    s.w = o.w*Math.abs(fx);
+    s.h = o.h*Math.abs(fy);
+    s.x = c.x-s.w/2; s.y = c.y-s.h/2;
+    if(o.type === 'text') s.size = Math.max(4, o.size*Math.abs(fy));
+    if(o.type === 'rect' && o.rx) s.rx = o.rx*Math.min(Math.abs(fx), Math.abs(fy));
+  }
+}
+function doGroupResize(dg, pt, shift, alt){
+  const f = resizeFactors(dg.origBounds, dg.handle, pt, shouldKeepAspect(shift, alt));
+  for(const id of sel){
+    const s = byId(id), o = dg.orig[id];
+    if(!s || !o) continue;
+    const fresh = clone(o);
+    scaleShapeAround(fresh, o, f.ax, f.ay, f.fx, f.fy);
+    Object.assign(s, fresh);
+  }
+}
+function doResize(s, dg, pt, shift, alt){
   if(!s) return;
   const o = dg.orig, hnd = dg.handle;
   const sxs = hnd.includes('w') ? -1 : hnd.includes('e') ? 1 : 0;
   const sys = hnd.includes('n') ? -1 : hnd.includes('s') ? 1 : 0;
   if(s.type === 'path'){
     const b0 = dg.origB;
-    const ax = sxs === 1 ? b0.x : b0.x + b0.w;   // anchor = opposite side
-    const ay = sys === 1 ? b0.y : b0.y + b0.h;
-    let fx = sxs !== 0 && b0.w > 0.01 ? (pt.x - ax) / ((sxs === 1 ? b0.x + b0.w : b0.x) - ax) : 1;
-    let fy = sys !== 0 && b0.h > 0.01 ? (pt.y - ay) / ((sys === 1 ? b0.y + b0.h : b0.y) - ay) : 1;
-    if(shift && sxs && sys){ const f = Math.max(Math.abs(fx), Math.abs(fy)); fx = Math.sign(fx||1)*f; fy = Math.sign(fy||1)*f; }
-    fx = Math.abs(fx) < 0.01 ? 0.01 : fx; fy = Math.abs(fy) < 0.01 ? 0.01 : fy;
-    s.pts = o.pts.map(p => ({ x: ax + (p.x-ax)*fx, y: ay + (p.y-ay)*fy }));
+    const f = resizeFactors(b0, hnd, pt, shouldKeepAspect(shift, alt));
+    s.pts = o.pts.map(p => ({ x:f.ax + (p.x-f.ax)*f.fx, y:f.ay + (p.y-f.ay)*f.fy }));
     return;
   }
   const rot = o.rot || 0;
@@ -1894,11 +2121,15 @@ function doResize(s, dg, pt, shift){
   const anchor = { x:-sxs*o.w/2, y:-sys*o.h/2 };
   let newW = sxs !== 0 ? Math.max(2, (lp.x - anchor.x)*sxs) : o.w;
   let newH = sys !== 0 ? Math.max(2, (lp.y - anchor.y)*sys) : o.h;
-  const lockDefault = s.type === 'image' || s.type === 'text';
-  const keepAspect = sxs && sys && (lockDefault ? !shift : shift);
+  const both = sxs !== 0 && sys !== 0;
+  // The visible checkbox controls the default. Shift temporarily reverses it,
+  // while Option always constrains the ratio, including from an edge handle.
+  const keepAspect = shouldKeepAspect(shift, alt) && o.w > 0.01 && o.h > 0.01;
   if(keepAspect){
     const r0 = o.w/o.h;
-    if(newW/newH > r0) newW = newH*r0; else newH = newW/r0;
+    if(both){ if(newW/newH > r0) newW = newH*r0; else newH = newW/r0; }
+    else if(sxs !== 0) newH = newW/r0;
+    else newW = newH*r0;
   }
   const anchorNew = { x:-sxs*newW/2, y:-sys*newH/2 };
   const aw = rot ? rotPt(anchor.x, anchor.y, rot) : anchor;
@@ -1910,7 +2141,20 @@ function doResize(s, dg, pt, shift){
   }
 }
 svg.addEventListener('pointerup', e => {
-  if(!drag){ return; }
+  // Synthesised double-click: two quick clean clicks in the same spot.
+  const clean = pdInfo && Math.hypot(e.clientX - pdInfo.x, e.clientY - pdInfo.y) < 4;
+  let dbl = false;
+  if(clean){
+    const now = performance.now();
+    if(lastClick && now - lastClick.t < 450 &&
+       Math.hypot(e.clientX - lastClick.x, e.clientY - lastClick.y) < 6){
+      dbl = true; lastClick = null;
+    } else {
+      lastClick = { t: now, x: e.clientX, y: e.clientY };
+    }
+  } else lastClick = null;
+  const dblTarget = pdInfo && pdInfo.target;
+  if(!drag){ if(dbl && dblTarget) canvasDblclick(dblTarget); return; }
   const m = drag.mode;
   if(m === 'pan'){ stage.className = spaceDown ? 'c-grab' : (tool === 'select' ? '' : stage.className); setTool(tool); }
   if(m === 'new-line'){
@@ -1929,28 +2173,41 @@ svg.addEventListener('pointerup', e => {
       else sel = [s.id];
     }
   }
-  if(m === 'move' && !drag.moved){
-    // plain click on already-selected shape without movement: nothing changed
+  if(m === 'move' && Math.hypot(e.clientX - drag.cx, e.clientY - drag.cy) < 4){
+    // A plain click, not a drag (screen-space so it works at any zoom): undo
+    // any sub-pixel drift, and a click on a lone text opens the editor
+    // directly — dragging it still moves it.
+    for(const id in drag.orig){ const s = byId(id); if(s) Object.assign(s, clone(drag.orig[id])); }
     if(undoStack.length && undoStack[undoStack.length-1] === snapshot()) undoStack.pop();
+    const t = drag.hitId ? byId(drag.hitId) : null;
+    if(t && t.type === 'text' && !t.group && !drag.shift && sel.length === 1 && sel[0] === t.id){
+      drag = null; guides = [];
+      startTextEdit(t.id);
+      syncPanel();
+      return;
+    }
   }
   drag = null;
   guides = [];
   render(); syncPanel();
+  if(dbl && dblTarget) canvasDblclick(dblTarget);
 });
-svg.addEventListener('dblclick', e => {
+let pdInfo = null, lastClick = null, lastDblAt = 0;
+function canvasDblclick(target){
+  lastDblAt = performance.now();
   if(warpState){
-    const wd = e.target.dataset ? e.target.dataset.warp : null;
+    const wd = target.dataset ? target.dataset.warp : null;
     if(wd != null && wd !== '') removeWarpPin(+wd);
     return;
   }
   if(tool === 'curve'){ finishCurve(); return; }
   if(tool !== 'select') return;
   if(nodeEdit){
-    const idx = e.target.dataset ? e.target.dataset.node : null;
+    const idx = target.dataset ? target.dataset.node : null;
     const s = byId(nodeEdit.id);
     if(s && idx != null){ deleteNode(s, +idx); return; }
   }
-  const g = e.target.closest ? e.target.closest('g[data-id]') : null;
+  const g = target.closest ? target.closest('g[data-id]') : null;
   if(g){
     const s = byId(g.getAttribute('data-id'));
     if(!s) return;
@@ -1958,10 +2215,77 @@ svg.addEventListener('dblclick', e => {
     else if(s.type === 'image'){ sel = [s.id]; startCrop(s.id); }
     else if(s.type === 'path' || s.type === 'line') startNodeEdit(s.id);
   }
+}
+// Fallback for environments where the native event still arrives; deduped
+// against the synthesised one so it can never fire twice.
+svg.addEventListener('dblclick', e => {
+  if(performance.now() - lastDblAt < 500) return;
+  canvasDblclick(e.target);
 });
-svg.addEventListener('contextmenu', e => e.preventDefault());
+/* ================= context menu ================= */
+const ctxMenu = $('ctxMenu');
+function closeCtxMenu(){ ctxMenu.classList.remove('open'); ctxMenu.innerHTML = ''; }
+function openCtxMenu(x, y, items){
+  ctxMenu.innerHTML = '';
+  for(const it of items){
+    if(it === '-'){
+      const d = document.createElement('div'); d.className = 'cm-sep';
+      ctxMenu.appendChild(d); continue;
+    }
+    const b = document.createElement('button');
+    b.innerHTML = `<span>${it.label}</span>` + (it.key ? `<span class="k">${it.key}</span>` : '');
+    b.disabled = !!it.disabled;
+    b.addEventListener('click', () => { closeCtxMenu(); it.run(); });
+    ctxMenu.appendChild(b);
+  }
+  ctxMenu.classList.add('open');
+  const r = ctxMenu.getBoundingClientRect();
+  ctxMenu.style.left = Math.max(4, Math.min(x, window.innerWidth - r.width - 8)) + 'px';
+  ctxMenu.style.top = Math.max(4, Math.min(y, window.innerHeight - r.height - 8)) + 'px';
+}
+function shapeMenuItems(){
+  const grouped = sel.some(id => { const s = byId(id); return s && s.group; });
+  return [
+    { label:'群組', key:'⌘G', disabled: expandIds(sel).length < 2, run:groupSel },
+    { label:'解除群組', key:'⇧⌘G', disabled: !grouped, run:ungroupSel },
+    '-',
+    { label:'剪下', key:'⌘X', run:() => { internalClip = sel.map(id => clone(byId(id))).filter(Boolean); deleteSel(); } },
+    { label:'複製', key:'⌘C', run:() => { internalClip = sel.map(id => clone(byId(id))).filter(Boolean); } },
+    { label:'再製', key:'⌘D', run:() => duplicateSel() },
+    { label:'刪除', key:'⌫', run:deleteSel },
+    '-',
+    { label:'移至最前', key:'⇧⌘]', run:() => zorder('front') },
+    { label:'上移一層', key:'⌘]', run:() => zorder('up') },
+    { label:'下移一層', key:'⌘[', run:() => zorder('down') },
+    { label:'移至最後', key:'⇧⌘[', run:() => zorder('back') }
+  ];
+}
+function canvasMenuItems(){
+  return [
+    { label:'貼上', key:'⌘V', disabled: !internalClip || !internalClip.length, run:pasteInternal },
+    { label:'全選', key:'⌘A', disabled: !doc.shapes.some(s => !s.hidden), run:selectAll }
+  ];
+}
+svg.addEventListener('contextmenu', e => {
+  e.preventDefault();
+  if(cropState || warpState || bgState || nodeEdit || editingTextId){ closeCtxMenu(); return; }
+  const g = e.target.closest ? e.target.closest('g[data-id]') : null;
+  const hitId = g ? g.getAttribute('data-id') : null;
+  if(hitId && !sel.includes(hitId)){ sel = groupMembers(hitId); render(); syncPanel(); }
+  openCtxMenu(e.clientX, e.clientY, sel.length ? shapeMenuItems() : canvasMenuItems());
+});
+$('layerList').addEventListener('contextmenu', e => {
+  e.preventDefault();
+  const row = e.target.closest('.lrow'); if(!row) return;
+  const id = row.dataset.id;
+  if(!sel.includes(id)){ sel = groupMembers(id); render(); syncPanel(); }
+  openCtxMenu(e.clientX, e.clientY, shapeMenuItems());
+});
+document.addEventListener('pointerdown', e => { if(!ctxMenu.contains(e.target)) closeCtxMenu(); }, true);
+window.addEventListener('blur', closeCtxMenu);
 stage.addEventListener('wheel', e => {
   e.preventDefault();
+  closeCtxMenu();
   // A trackpad pinch arrives as ctrl+wheel in Chromium; ⌘+wheel is the mouse equivalent.
   if(e.ctrlKey || e.metaKey){
     zoomAt(e.clientX, e.clientY, Math.pow(1.0022, -e.deltaY));
@@ -2528,12 +2852,21 @@ function commitTextEdit(){
   if(!editingTextId) return;
   const s = byId(editingTextId);
   const val = txtEdit.value.replace(/\s+$/,'');
+  const isNew = txtEdit.dataset.isNew === '1';   // creation already pushed history
   editingTextId = null;
   txtEdit.style.display = 'none';
   if(s){
-    if(val === ''){ doc.shapes = doc.shapes.filter(x => x.id !== s.id); sel = sel.filter(i => i !== s.id); }
-    else s.text = val;
+    if(val === ''){
+      if(isNew) undoStack.pop(); else pushHistory();
+      doc.shapes = doc.shapes.filter(x => x.id !== s.id); sel = sel.filter(i => i !== s.id);
+    } else if(val !== s.text){
+      if(!isNew) pushHistory();
+      s.text = val;
+    }
   }
+  // Back to the pointer once typing is done, so the text can be dragged
+  // right away instead of the next click spawning another text box.
+  if(tool === 'text') setTool('select');
   render(); syncPanel();
 }
 function cancelTextEdit(){
@@ -2542,12 +2875,14 @@ function cancelTextEdit(){
   editingTextId = null;
   txtEdit.style.display = 'none';
   if(s && (isNew || s.text === '')){ doc.shapes = doc.shapes.filter(x => x.id !== s.id); sel = sel.filter(i => i !== s.id); undoStack.pop(); }
+  if(tool === 'text') setTool('select');
   render(); syncPanel();
 }
 txtEdit.addEventListener('input', () => { const s = byId(editingTextId); if(s) autoSizeTxt(s); });
 txtEdit.addEventListener('blur', () => commitTextEdit());
 txtEdit.addEventListener('keydown', e => {
   e.stopPropagation();
+  if(e.isComposing || e.keyCode === 229) return;
   if(e.key === 'Escape'){ e.preventDefault(); cancelTextEdit(); }
   if(e.key === 'Enter' && (e.metaKey || e.ctrlKey)){ e.preventDefault(); commitTextEdit(); }
 });
@@ -2906,19 +3241,11 @@ async function importImageFiles(files, at){
     let im = await new Promise(res => { const m = new Image(); m.onload = () => res(m); m.onerror = () => res(null); m.src = url; });
     if(!im) continue;
     let nw = im.naturalWidth, nh = im.naturalHeight;
-    const MAX = 5000;   // keeps 300 dpi A4 figures (2480×3508) at full resolution
-    if(Math.max(nw, nh) > MAX){
-      const f2 = MAX/Math.max(nw, nh);
-      const cnv = document.createElement('canvas');
-      cnv.width = Math.round(nw*f2); cnv.height = Math.round(nh*f2);
-      cnv.getContext('2d').drawImage(im, 0, 0, cnv.width, cnv.height);
-      url = cnv.toDataURL('image/png');
-      im = await new Promise(res => { const m = new Image(); m.onload = () => res(m); m.src = url; });
-      nw = im.naturalWidth; nh = im.naturalHeight;
-    }
+    // Keep the original pixels for export; only the on-screen preview is reduced.
     const aid = uid();
     assets[aid] = url;
     imgCache[aid] = { el:im, w:nw, h:nh };
+    preparePreview(imgCache[aid]);
     const label = f.name.replace(/\.[^.]+$/, '');
     let s;
     if(fitCanvas){
@@ -2964,7 +3291,12 @@ document.addEventListener('paste', e => {
 function pasteInternal(){
   if(!internalClip || !internalClip.length) return;
   pushHistory();
-  const copies = internalClip.map(s => { const c = clone(s); c.id = uid(); moveShapeBy(c, 24, 24); return c; });
+  const gmap = {};
+  const copies = internalClip.map(s => {
+    const c = clone(s); c.id = uid(); moveShapeBy(c, 24, 24);
+    if(c.group) c.group = gmap[c.group] || (gmap[c.group] = 'grp' + (uidN++));
+    return c;
+  });
   doc.shapes.push(...copies);
   sel = copies.map(c => c.id);
   internalClip = copies.map(clone);
@@ -2980,6 +3312,9 @@ function shapeLabel(s){
 }
 function renderLayers(){
   const list = $('layerList');
+  const key = JSON.stringify(doc.shapes.map(s => [s.id,shapeLabel(s),s.type,s.hidden,s.group,sel.includes(s.id)]));
+  if(list._key === key) return;
+  list._key = key;
   $('layerCount').textContent = doc.shapes.length ? doc.shapes.length + ' 個' : '';
   if(!doc.shapes.length){
     list.innerHTML = '<div id="layerEmpty">尚無物件</div>';
@@ -2999,7 +3334,8 @@ function renderLayers(){
     const nm = document.createElement('span');
     nm.className = 'lname'; nm.textContent = shapeLabel(s); nm.title = shapeLabel(s);
     const kd = document.createElement('span');
-    kd.className = 'lkind'; kd.textContent = KIND[s.type] || '';
+    kd.className = 'lkind';
+    kd.textContent = (s.group ? '群組·' : '') + (KIND[s.type] || '');
     row.append(eye, nm, kd);
     frag.appendChild(row);
   }
@@ -3108,8 +3444,9 @@ function syncPanel(){
   show('corner', types.has('rect') || tool === 'rect');
   show('text', textCtx);
   show('op', shapes.length > 0);
-  show('pos', !!one && one.type !== 'line');
+  show('pos', shapes.length > 1 || (!!one && one.type !== 'line'));
   show('canvas', shapes.length === 0);
+  $('posSelInfo').textContent = shapes.length > 1 ? `（${shapes.length} 個物件）` : '';
   $('propHint').style.display = shapes.length || drawTool || textCtx ? 'none' : 'block';
 
   const ref = shapes.find(s => ['line','path','rect','ellipse'].includes(s.type));
@@ -3171,9 +3508,18 @@ function syncPanel(){
   syncPosInputs();
 }
 function syncPosInputs(){
-  const one = sel.length === 1 ? byId(sel[0]) : null;
-  if(!one || one.type === 'line') return;
+  const shapes = sel.map(id => byId(id)).filter(Boolean);
+  const one = shapes.length === 1 ? shapes[0] : null;
+  if(!shapes.length || (one && one.type === 'line')) return;
   const r1 = v => Math.round(v*10)/10;
+  $('inRot').disabled = shapes.length > 1;
+  if(shapes.length > 1){
+    const b = boundsOf(sel);
+    $('inX').value = r1(b.x); $('inY').value = r1(b.y);
+    $('inW').value = r1(b.w); $('inH').value = r1(b.h);
+    $('inRot').value = '';
+    return;
+  }
   if(one.type === 'path'){
     const b = shapeBounds(one);
     $('inX').value = r1(b.x); $('inY').value = r1(b.y); $('inW').value = r1(b.w); $('inH').value = r1(b.h);
@@ -3276,21 +3622,49 @@ $('btnItalic').addEventListener('click', () => {
   $('btnItalic').classList.toggle('on', now); panelDirty = false;
 });
 ['inX','inY','inW','inH','inRot'].forEach(id => $(id).addEventListener('change', e => {
-  const one = sel.length === 1 ? byId(sel[0]) : null;
-  if(!one || one.type === 'line') return;
+  const shapes = sel.map(id => byId(id)).filter(Boolean);
+  const one = shapes.length === 1 ? shapes[0] : null;
+  if(!shapes.length || (one && one.type === 'line')) return;
+  const v = Number(e.target.value);
+  if(!Number.isFinite(v) || ((id === 'inW' || id === 'inH') && v <= 0)){
+    syncPosInputs(); return;
+  }
   pushHistory();
-  const v = +e.target.value || 0;
-  if(one.type === 'path'){
+  if(shapes.length > 1){
+    const b = boundsOf(sel);
+    if(id === 'inX' || id === 'inY'){
+      const dx = id === 'inX' ? v-b.x : 0, dy = id === 'inY' ? v-b.y : 0;
+      shapes.forEach(s => moveShapeBy(s, dx, dy));
+    } else if((id === 'inW' && b.w > 0.01) || (id === 'inH' && b.h > 0.01)){
+      let fx = id === 'inW' ? v/b.w : 1;
+      let fy = id === 'inH' ? v/b.h : 1;
+      if($('inAspect').checked) fx = fy = id === 'inW' ? fx : fy;
+      for(const s of shapes){
+        const o = clone(s);
+        scaleShapeAround(s, o, b.x, b.y, fx, fy);
+      }
+    }
+  } else if(one.type === 'path'){
     const b = shapeBounds(one);
     if(id === 'inX') moveShapeBy(one, v - b.x, 0);
     if(id === 'inY') moveShapeBy(one, 0, v - b.y);
-    if(id === 'inW' && b.w > 0.01 && v > 0) one.pts = one.pts.map(p => ({ x: b.x + (p.x-b.x)*v/b.w, y:p.y }));
-    if(id === 'inH' && b.h > 0.01 && v > 0) one.pts = one.pts.map(p => ({ x:p.x, y: b.y + (p.y-b.y)*v/b.h }));
+    if((id === 'inW' && b.w > 0.01) || (id === 'inH' && b.h > 0.01)){
+      let fx = id === 'inW' ? v/b.w : 1;
+      let fy = id === 'inH' ? v/b.h : 1;
+      if($('inAspect').checked) fx = fy = id === 'inW' ? fx : fy;
+      const o = clone(one);
+      scaleShapeAround(one, o, b.x, b.y, fx, fy);
+    }
   } else {
     if(id === 'inX') one.x = v;
     if(id === 'inY') one.y = v;
-    if(id === 'inW' && v > 0){ if(one.type === 'text'){ } else one.w = v; }
-    if(id === 'inH' && v > 0){ if(one.type === 'text'){ one.size = Math.max(4, Math.round(one.size * v/one.h)); } else one.h = v; }
+    if((id === 'inW' && one.w > 0.01) || (id === 'inH' && one.h > 0.01)){
+      let fx = id === 'inW' ? v/one.w : 1;
+      let fy = id === 'inH' ? v/one.h : 1;
+      if($('inAspect').checked) fx = fy = id === 'inW' ? fx : fy;
+      const o = clone(one);
+      scaleShapeAround(one, o, one.x, one.y, fx, fy);
+    }
     if(id === 'inRot') one.rot = ((v % 360) + 360) % 360;
   }
   render(); syncPosInputs();
@@ -3492,66 +3866,133 @@ document.addEventListener('click', e => {
 });
 function exportSVGString(transparent, pxW, pxH){
   if(editingTextId) commitTextEdit();
-  const cl = shapesLayer.cloneNode(true);
+  const cl = document.createElementNS(SVGNS, 'g');
+  doc.shapes.filter(s => !s.hidden).forEach(s => cl.appendChild(build(specFor(s, true))));
   cl.querySelectorAll('[data-hit]').forEach(n => n.remove());
   cl.querySelectorAll('[display="none"]').forEach(n => n.remove());
   const bg = (transparent || doc.transparent) ? '' : `<rect width="${doc.w}" height="${doc.h}" fill="${doc.bg}"/>`;
   // For a saved SVG, physical units keep the artwork at true print size in
   // Illustrator. For rasterising, the intrinsic size must equal the target
   // pixel size or the browser renders the vectors at the smaller size first.
-  const ppi = doc.ppi || 300;
+  const mm = exportWidthMM();
   const size = pxW
     ? `width="${pxW}" height="${pxH}"`
-    : `width="${(doc.w/ppi*25.4).toFixed(3)}mm" height="${(doc.h/ppi*25.4).toFixed(3)}mm"`;
+    : `width="${mm.toFixed(3)}mm" height="${(mm*doc.h/doc.w).toFixed(3)}mm"`;
   return `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" ${size} viewBox="0 0 ${doc.w} ${doc.h}">${bg}${cl.innerHTML}</svg>`;
 }
 const exportDpi = () => +$('expDpi').value;
-const exportScale = () => exportDpi() / (doc.ppi || 300);
-function exportPixels(){
-  return { w: Math.max(1, Math.round(doc.w * exportScale())),
-           h: Math.max(1, Math.round(doc.h * exportScale())) };
+const exportWidthMM = () => +$('expWidth').value > 0 ? +$('expWidth').value : doc.w/(doc.ppi || 300)*25.4;
+function exportPixels(sourceDoc = doc, mmW = exportWidthMM(), baseDpi = exportDpi(), detail = $('expDetail').checked){
+  let nativeScale = 1;
+  for(const s of sourceDoc.shapes){
+    const c = imgCache[s.asset];
+    if(s.hidden || s.type !== 'image' || !c || s.w <= 0 || s.h <= 0) continue;
+    nativeScale = Math.max(nativeScale, c.w/s.w, c.h/s.h);
+  }
+  const nativeDpi = Math.ceil(nativeScale*sourceDoc.w/mmW*25.4);
+  const autoLimit = Math.floor(Math.min(Math.sqrt(64e6/(sourceDoc.w*sourceDoc.h)), 16384/Math.max(sourceDoc.w,sourceDoc.h))*sourceDoc.w/mmW*25.4);
+  const dpi = detail ? Math.max(baseDpi, Math.min(nativeDpi, autoLimit)) : baseDpi;
+  const scale = mmW/25.4*dpi/sourceDoc.w;
+  return { w:Math.max(1, Math.round(sourceDoc.w*scale)), h:Math.max(1, Math.round(sourceDoc.h*scale)), dpi,
+           limited:detail && nativeDpi > autoLimit };
 }
 function updateExportInfo(){
-  const px = exportPixels(), dpi = exportDpi();
-  const mmW = doc.w / (doc.ppi || 300) * 25.4, mmH = doc.h / (doc.ppi || 300) * 25.4;
+  const px = exportPixels(), dpi = px.dpi;
+  const mmW = exportWidthMM(), mmH = mmW*doc.h/doc.w;
+  $('expWidth').placeholder = (doc.w/(doc.ppi || 300)*25.4).toFixed(1);
   const mp = px.w * px.h / 1e6;
   const low = dpi < 300;
   $('expInfo').innerHTML =
     `輸出 <b>${px.w} × ${px.h} px</b>（${mp.toFixed(1)} MP）<br>` +
-    `列印尺寸 ${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm` +
+    `列印尺寸 ${mmW.toFixed(1)} × ${mmH.toFixed(1)} mm<br>` +
+    `實際解析度 <b>${dpi} ppi</b>` +
+    (px.limited ? '<br>已達自動細節模式的 6400 萬像素／邊長上限' : '') +
     (low ? '<br><span class="warn">⚠ 低於 300 ppi，多數期刊不接受</span>' : '');
 }
-// Rasterise the artboard through an SVG snapshot at the requested resolution.
-function renderRaster(transparent){
-  return new Promise((res, rej) => {
-    const px = exportPixels();
-    if(px.w * px.h > 240e6){
-      rej(new Error(`輸出尺寸過大（${px.w}×${px.h}），請降低解析度或縮小畫布。`));
-      return;
+function drawVectorShape(ctx, s){
+  if(s.type === 'text'){
+    ctx.font = `${s.italic ? 'italic ' : ''}${s.bold ? '700' : '400'} ${s.size}px ${FAMS[s.family] || FAMS.sans}`;
+    ctx.fillStyle = s.color;
+    String(s.text).split('\n').forEach((line,i) => ctx.fillText(line, s.x, s.y+s.size*.88+i*s.size*1.3));
+    return;
+  }
+  ctx.strokeStyle = s.stroke; ctx.lineWidth = s.sw;
+  const box = s.type === 'rect' || s.type === 'ellipse';
+  ctx.lineCap = box ? 'butt' : 'round'; ctx.lineJoin = box ? 'miter' : 'round';
+  ctx.setLineDash((dashArr(s) || '').split(',').filter(Boolean).map(Number));
+  let path;
+  if(s.type === 'path'){
+    path = new Path2D(s.smooth === false
+      ? 'M'+s.pts.map(p => `${p.x} ${p.y}`).join('L')+(s.closed ? 'Z' : '')
+      : smoothD(s.pts, s.closed));
+  } else {
+    path = new Path2D();
+    if(s.type === 'rect'){
+      const rx = Math.min(s.rx || 0, s.w/2, s.h/2);
+      path.roundRect(s.x, s.y, s.w, s.h, rx);
+    } else if(s.type === 'ellipse'){
+      path.ellipse(s.x+s.w/2, s.y+s.h/2, s.w/2, s.h/2, 0, 0, Math.PI*2);
+    } else if(s.type === 'line'){
+      const dx=s.x2-s.x1, dy=s.y2-s.y1, len=Math.hypot(dx,dy)||1, L=arrowLen(s.sw,s.as)*.65;
+      path.moveTo(s.x1+(s.a1 ? dx/len*L : 0), s.y1+(s.a1 ? dy/len*L : 0));
+      path.lineTo(s.x2-(s.a2 ? dx/len*L : 0), s.y2-(s.a2 ? dy/len*L : 0));
     }
-    const url = URL.createObjectURL(new Blob([exportSVGString(transparent, px.w, px.h)],
-                                             { type:'image/svg+xml' }));
-    const im = new Image();
-    im.onload = () => {
-      const cnv = document.createElement('canvas');
-      cnv.width = px.w; cnv.height = px.h;
-      const ctx = cnv.getContext('2d');
-      ctx.drawImage(im, 0, 0, px.w, px.h);
-      URL.revokeObjectURL(url);
-      res({ cnv, ctx, ...px });
-    };
-    im.onerror = () => { URL.revokeObjectURL(url); rej(new Error('圖稿轉檔失敗')); };
-    im.src = url;
-  });
+  }
+  if(s.type !== 'line' && !s.noFill && s.fill && s.fill !== 'none'){ ctx.fillStyle=s.fill; ctx.fill(path); }
+  ctx.stroke(path);
+  const pts = s.type === 'line' ? [{x:s.x1,y:s.y1},{x:s.x2,y:s.y2}] : s.type === 'path' && !s.closed ? s.pts : [];
+  if(pts.length < 2) return;
+  const head = (p,q,on) => {
+    if(!on) return;
+    const spec = arrowSpec(p.x,p.y,Math.atan2(p.y-q.y,p.x-q.x),s.sw,s.stroke,true,s.as);
+    const points = spec.attrs.points.split(' ').map(p => p.split(',').map(Number));
+    const a = new Path2D(); a.moveTo(...points[0]); points.slice(1).forEach(p => a.lineTo(...p)); a.closePath();
+    ctx.fillStyle=s.stroke; ctx.fill(a);
+  };
+  head(pts[0],pts[1],s.a1); head(pts[pts.length-1],pts[pts.length-2],s.a2);
+}
+// Draw the original decoded images directly at the final pixel size. Display
+// previews and WebKit's SVG-as-image raster cache never enter the export path.
+async function renderRaster(transparent, forceOpaque = false){
+  if(editingTextId) commitTextEdit();
+  const shapes = doc.shapes.filter(s => !s.hidden).map(clone);
+  const dw=doc.w, dh=doc.h, bg=doc.bg, trans=!forceOpaque && (transparent || doc.transparent);
+  const mmW=exportWidthMM(), baseDpi=exportDpi(), detail=$('expDetail').checked;
+  const loaded = await Promise.all(shapes.filter(s => s.type === 'image').map(async s => {
+    const c = await loadAsset(s.asset);
+    if(!c?.el) throw new Error(`無法解碼原圖：${shapeLabel(s)}`);
+    return [s.asset,c.el];
+  }));
+  await document.fonts.ready;
+  const px = exportPixels({w:dw,h:dh,shapes},mmW,baseDpi,detail), images = new Map(loaded);
+  if(px.w*px.h > 240e6 || Math.max(px.w,px.h) > 32767) throw new Error(`輸出尺寸過大（${px.w}×${px.h}），請降低解析度或列印寬度。`);
+  const cnv = document.createElement('canvas'); cnv.width=px.w; cnv.height=px.h;
+  const ctx = cnv.getContext('2d');
+  ctx.scale(px.w/dw, px.h/dh);
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
+  if(!trans){ ctx.fillStyle=bg; ctx.fillRect(0,0,dw,dh); }
+  for(const s of shapes){
+    ctx.save(); ctx.globalAlpha=s.opacity ?? 1;
+    if(s.rot && !['line','path'].includes(s.type)){
+      const c=shapeCenter(s); ctx.translate(c.x,c.y); ctx.rotate(rad(s.rot)); ctx.translate(-c.x,-c.y);
+    }
+    if(s.type === 'image') ctx.drawImage(images.get(s.asset),s.x,s.y,s.w,s.h);
+    else drawVectorShape(ctx,s);
+    ctx.restore();
+  }
+  return { cnv,ctx,...px };
 }
 const blobBytes = b => b.arrayBuffer().then(a => new Uint8Array(a));
 async function exportRaster(kind){
   $('expPop').classList.remove('open');
-  const dpi = exportDpi();
-  const transparent = $('expTrans').checked && kind !== 'jpeg';
+  let dpi = exportPixels().dpi;
+  const transparent = ($('expTrans').checked || doc.transparent) && kind !== 'jpeg';
+  let outputCanvas;
   $('hint').textContent = `正在以 ${dpi} ppi 產生 ${kind.toUpperCase()}…`;
   try{
-    const { cnv, ctx, w, h } = await renderRaster(transparent);
+    const { cnv, ctx, w, h, dpi:actualDpi } = await renderRaster(transparent, kind === 'jpeg');
+    outputCanvas = cnv;
+    dpi = actualDpi;
     if(kind === 'png'){
       const blob = await new Promise(r => cnv.toBlob(r, 'image/png'));
       download('figure.png', new Blob([pngWithDPI(await blobBytes(blob), dpi)], { type:'image/png' }));
@@ -3572,6 +4013,8 @@ async function exportRaster(kind){
   }catch(err){
     $('hint').textContent = '';
     alert('匯出失敗：' + err.message);
+  }finally{
+    if(outputCanvas) outputCanvas.width = outputCanvas.height = 1;
   }
 }
 $('btnSVG').addEventListener('click', () => {
@@ -3583,6 +4026,7 @@ $('btnJPG').addEventListener('click', () => exportRaster('jpeg'));
 $('btnTIF').addEventListener('click', () => exportRaster('tiff'));
 $('btnPDF').addEventListener('click', () => exportRaster('pdf'));
 $('expDpi').addEventListener('change', updateExportInfo);
+['expDetail','expWidth'].forEach(id => $(id).addEventListener('change', updateExportInfo));
 $('expQ').addEventListener('input', () => { $('expQVal').textContent = $('expQ').value; });
 $('btnUndo').addEventListener('click', undo);
 $('btnRedo').addEventListener('click', redo);
@@ -3607,7 +4051,7 @@ $('z100').addEventListener('click', () => {
 /* ================= keyboard ================= */
 document.addEventListener('keydown', e => {
   const t = e.target;
-  if(t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT')) return;
+  if(e.isComposing || (t && (t.isContentEditable || t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT'))) return;
   const mod = e.metaKey || e.ctrlKey;
   if(e.key === ' '){ if(!spaceDown){ spaceDown = true; if(!drag) stage.className = 'c-grab'; } e.preventDefault(); return; }
   if(mod){
@@ -3616,6 +4060,7 @@ document.addEventListener('keydown', e => {
     if(k === 'y'){ e.preventDefault(); redo(); return; }
     if(k === 'a'){ e.preventDefault(); selectAll(); return; }
     if(k === 'd'){ e.preventDefault(); duplicateSel(); return; }
+    if(k === 'g'){ e.preventDefault(); e.shiftKey ? ungroupSel() : groupSel(); return; }
     if(k === 's'){ e.preventDefault(); $('btnSave').click(); return; }
     if(k === '0'){ e.preventDefault(); fitView(); return; }
     if(k === '=' || k === '+'){ e.preventDefault(); $('zIn').click(); return; }
@@ -3632,6 +4077,7 @@ document.addEventListener('keydown', e => {
     return;
   }
   if(e.key === 'Escape'){
+    if(ctxMenu.classList.contains('open')){ closeCtxMenu(); return; }
     if(warpState) cancelWarp();
     else if(cropState) cancelCrop();
     else if(nodeEdit) endNodeEdit();
@@ -3685,8 +4131,14 @@ document.addEventListener('keydown', e => {
   }
 });
 document.addEventListener('keyup', e => {
-  if(e.key === ' '){ spaceDown = false; if(!drag) setTool(tool); }
+  // Only release a pan that was actually started. Calling setTool here commits
+  // the text editor when a normal typed space bubbles up from its keyup event.
+  if(e.key === ' ' && spaceDown){
+    spaceDown = false;
+    if(!drag) stage.className = tool === 'select' ? '' : tool === 'text' ? 'c-text' : 'c-cross';
+  }
 });
+window.addEventListener('blur', () => { spaceDown = false; });
 window.addEventListener('resize', render);
 
 /* ================= raster encoders =================
@@ -3965,6 +4417,8 @@ window.flCommand = function(cmd){
     case 'redo': inField() ? document.execCommand('redo') : redo(); break;
     case 'duplicate': if(!inField()) duplicateSel(); break;
     case 'delete': if(!inField()) deleteSel(); break;
+    case 'group': if(!inField()) groupSel(); break;
+    case 'ungroup': if(!inField()) ungroupSel(); break;
     case 'selectAll':
       if(inField()) document.activeElement.select(); else selectAll();
       break;
@@ -4016,13 +4470,18 @@ window.flOpenPaths = function(paths){ /* reserved for Finder "open with" */ };
 /* ================= init ================= */
 paintIcons();
 setTool('select');
-if(!tryRestoreAutosave() || !tabs.length){
+(async () => {
+$('app').inert = true;
+if(!await tryRestoreAutosave() || !tabs.length){
   if(!tabs.length){
     tabs = [{ id:'t' + (tabSeq++), name:'未命名 1', doc, view:{ ...view },
               sel:[], undoStack:[], redoStack:[] }];
     activeTab = 0;
   }
 }
+autosaveReady = true;
+$('app').inert = false;
 syncPanel();
 requestAnimationFrame(() => { fitView(); renderTabs(); });
+})();
 </script>

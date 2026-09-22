@@ -38,6 +38,9 @@ in a browser, or run the macOS app.
 - Alignment (left / centre / right / top / middle / bottom) against the canvas for
   a single object, or against the selection when several are chosen, plus
   distribute-evenly for three or more.
+- Proportional scaling with an explicit aspect-ratio lock. A single object or a
+  marquee selection of several objects can be resized from the shared bounding
+  box while preserving every object's proportions and relative placement.
 - **Smart guides** while dragging: objects snap to each other's edges and centres
   and to the canvas, with a guide line showing what was matched. Hold `Alt` to
   suspend.
@@ -89,6 +92,19 @@ Resolution is chosen in ppi (150 / 300 / 600 / 1200) rather than as a multiplier
 and the panel shows the resulting pixel dimensions and physical size before you
 export. Anything below 300 ppi is flagged.
 
+The default **preserve source detail** option raises the actual ppi when large
+source panels have been placed on a small canvas. It keeps the document's print
+size, up to an automatic 64-megapixel / 16384-pixel-edge limit, and displays the
+actual pixel dimensions and ppi that will be written to the file. Turn it off to
+use exactly the selected ppi. Print width can also be entered in millimetres;
+180 mm at 300 ppi, for example, produces a 2126-pixel-wide image. A 300 ppi tag
+alone cannot preserve small lettering on a 1024-pixel canvas.
+
+Display previews are separate from the originals. Raster export draws original
+images and vector annotations directly at the final output resolution; SVG
+export also embeds the originals. New image imports retain their full pixel
+dimensions instead of being silently reduced to a 5000-pixel long edge.
+
 New documents can be started at A4 or A3 in either orientation, at single- or
 double-column journal widths, or at a custom size in millimetres.
 
@@ -99,7 +115,8 @@ double-column journal widths, or at a custom size in millimetres.
 ### In a browser
 
 Open `figure-editor.html`. That is the whole application — one file, no server,
-no installation. Work is auto-saved to the browser's local storage; "Save project"
+no installation. Work is auto-saved asynchronously to IndexedDB, with unchanged
+images stored only once; legacy local-storage autosaves are still read. "Save project"
 writes a `.json` containing every tab for backup.
 
 ### As a macOS app

@@ -178,6 +178,9 @@ final class Controller: NSObject, NSApplicationDelegate, WKUIDelegate,
 
         let arrItem = NSMenuItem()
         let arrMenu = NSMenu(title: "排列")
+        arrMenu.addItem(item("群組", #selector(cmdGroup), "g"))
+        arrMenu.addItem(item("解除群組", #selector(cmdUngroup), "g", [.command, .shift]))
+        arrMenu.addItem(.separator())
         arrMenu.addItem(item("移至最前", #selector(cmdFront), "]", [.command, .shift]))
         arrMenu.addItem(item("上移一層", #selector(cmdUp), "]"))
         arrMenu.addItem(item("下移一層", #selector(cmdDown), "["))
@@ -276,6 +279,8 @@ final class Controller: NSObject, NSApplicationDelegate, WKUIDelegate,
     @objc func cmdWarp() { send("warp") }
     @objc func cmdCropCanvas() { send("cropCanvas") }
     @objc func cmdTrim() { send("trim") }
+    @objc func cmdGroup() { send("group") }
+    @objc func cmdUngroup() { send("ungroup") }
     @objc func cmdFront() { send("front") }
     @objc func cmdUp() { send("up") }
     @objc func cmdDown() { send("down") }

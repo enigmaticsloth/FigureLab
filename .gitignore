@@ -2,6 +2,7 @@
 FigureLab.app/
 mac-app/icon.iconset/
 mac-app/.bin-*
+artifacts/
 
 # macOS
 .DS_Store
