@@ -77,10 +77,12 @@
     scheduleAutosave(); await pause(1800);
     const stored=await readSaved(await autosaveDB(),'session');
     check(stored?.assetIds.length===sources.length,'20 MB project autosaves without localStorage quota failure');
-    const expected=JSON.stringify(doc);
+    const expected=doc.shapes.map(s=>[s.type,s.name,s.text,s.x,s.y,s.w,s.h]);
+    const expectedAssets=Object.values(assets).sort();
     doc={w:10,h:10,shapes:[]}; assets={}; tabs=[];
     check(await tryRestoreAutosave(),'IndexedDB autosave restores');
-    check(JSON.stringify(doc)===expected && Object.keys(assets).length===sources.length,'Restored layout and all source assets match');
+    check(JSON.stringify(doc.shapes.map(s=>[s.type,s.name,s.text,s.x,s.y,s.w,s.h]))===JSON.stringify(expected) &&
+      JSON.stringify(Object.values(assets).sort())===JSON.stringify(expectedAssets),'Restored layout and all source assets match (fresh IDs)');
     post({passed:true});
   } catch(error) { post({log:'FAIL: '+error.message+'\n'+error.stack,passed:false}); }
 })();

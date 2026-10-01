@@ -10,6 +10,7 @@ import UniformTypeIdentifiers
 
 let appScheme = "app"
 let appHost = "local"
+let slothType = UTType(exportedAs: "tw.johnnylin.figurelab.sloth", conformingTo: .png)
 
 final class PageSchemeHandler: NSObject, WKURLSchemeHandler {
     func webView(_ webView: WKWebView, start task: WKURLSchemeTask) {
@@ -36,6 +37,9 @@ final class Controller: NSObject, NSApplicationDelegate, WKUIDelegate,
     var window: NSWindow!
     var web: WKWebView!
     private var pinchMonitor: Any?
+    private var pageReady = false
+    private var pendingProjects: [URL] = []
+    private var openingProject = false
 
     // MARK: launch
 
@@ -90,6 +94,50 @@ final class Controller: NSObject, NSApplicationDelegate, WKUIDelegate,
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { true }
+
+    // Finder may deliver files before the WebKit editor has finished loading.
+    // Queue explicit opens; an ordinary launch still starts with a blank canvas.
+    func application(_ sender: NSApplication, openFiles filenames: [String]) {
+        pendingProjects.append(contentsOf: filenames.map { URL(fileURLWithPath: $0) })
+        openNextProject()
+        sender.reply(toOpenOrPrint: .success)
+    }
+
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+        pageReady = false
+    }
+
+    private func openNextProject() {
+        guard pageReady, !openingProject, !pendingProjects.isEmpty else { return }
+        openingProject = true
+        let url = pendingProjects.removeFirst()
+        window.makeKeyAndOrderFront(nil)
+        DispatchQueue.global(qos: .userInitiated).async {
+            do {
+                let values = try url.resourceValues(forKeys: [.fileSizeKey, .isRegularFileKey])
+                guard values.isRegularFile == true, let size = values.fileSize, size <= 512 * 1024 * 1024 else {
+                    throw NSError(domain: "FigureLab", code: 1,
+                        userInfo: [NSLocalizedDescriptionKey: "請選擇不超過 512 MB 的 FigureLab 專案檔。"])
+                }
+                let data = try Data(contentsOf: url)
+                DispatchQueue.main.async {
+                    self.web.callAsyncJavaScript("return await window.flOpenProject(data, name)",
+                        arguments: ["data": data.base64EncodedString(), "name": url.lastPathComponent],
+                        in: nil, in: .page) { result in
+                        if case .failure(let error) = result { self.alert("無法開啟專案", error.localizedDescription) }
+                        self.openingProject = false
+                        self.openNextProject()
+                    }
+                }
+            } catch {
+                DispatchQueue.main.async {
+                    self.alert("無法開啟專案", error.localizedDescription)
+                    self.openingProject = false
+                    self.openNextProject()
+                }
+            }
+        }
+    }
 
     // MARK: menu
 
@@ -360,6 +408,7 @@ final class Controller: NSObject, NSApplicationDelegate, WKUIDelegate,
     func userContentController(_ ucc: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let body = message.body as? [String: Any],
               let cmd = body["cmd"] as? String else { return }
+        if cmd == "ready" { pageReady = true; openNextProject(); return }
         if cmd == "closeWindow" { window.performClose(nil); return }
         if cmd == "save" {
             let name = body["name"] as? String ?? "figure"
@@ -368,13 +417,15 @@ final class Controller: NSObject, NSApplicationDelegate, WKUIDelegate,
             let panel = NSSavePanel()
             panel.nameFieldStringValue = name
             panel.canCreateDirectories = true
-            if let ext = name.split(separator: ".").last,
+            if name.lowercased().hasSuffix(".sloth") {
+                panel.allowedContentTypes = [slothType]
+            } else if let ext = name.split(separator: ".").last,
                let type = UTType(filenameExtension: String(ext)) {
                 panel.allowedContentTypes = [type]
             }
             panel.beginSheetModal(for: window) { resp in
                 guard resp == .OK, let url = panel.url else { return }
-                do { try data.write(to: url) }
+                do { try data.write(to: url, options: .atomic) }
                 catch { self.alert("儲存失敗", error.localizedDescription) }
             }
         }

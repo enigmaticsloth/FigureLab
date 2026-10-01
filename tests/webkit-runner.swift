@@ -34,7 +34,7 @@ final class Runner: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKScr
     }
     func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         do {
-            let project = try String(contentsOfFile: args[2], encoding: .utf8)
+            let project = args[2] == "-" ? "{}" : try String(contentsOfFile: args[2], encoding: .utf8)
             let script = try String(contentsOfFile: args[3], encoding: .utf8)
             web.evaluateJavaScript("window.testProject = " + project + ";\n" + script + "\nvoid 0;") { _, error in
                 if let error { print("FAIL: \(error)"); exit(1) }

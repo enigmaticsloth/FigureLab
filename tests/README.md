@@ -26,7 +26,17 @@ output directory. Generated scientific data is ignored by Git.
 Use `render-regression.js` in place of `editor-regression.js` for generated shape
 fixtures covering rotation, opacity, line and arrow styling, paths, text, layer
 order, transparency, and preservation of imports larger than 5000 pixels. The
-project argument is still required by the runner but is not used by this suite.
+project argument can be `-` for suites that generate their own fixtures.
+
+Use `project-regression.js` with project argument `-` to test editable PNG
+save/reopen, original images, groups and hidden layers, multiple tabs, snapshot
+consistency during an asynchronous save, old JSON compatibility, PNG corruption
+checks, and the uncompressed fallback. This suite also performs full page reloads
+with IndexedDB and legacy backups present: startup stays blank, the backup is
+preserved, and explicit recovery still works. It writes a generated sample
+`editable-project.sloth` suitable for testing Finder Quick Look after registering
+the updated macOS app. It also tests `.sloth` saves, drop events without a MIME
+type, the native Finder-open bridge, and compatibility with `.figurelab.png`.
 
 The tests need a macOS graphical session. All test windows and data stores are
 owned by the runner, which exits after reporting success or failure.

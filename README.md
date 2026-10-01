@@ -115,9 +115,25 @@ double-column journal widths, or at a custom size in millimetres.
 ### In a browser
 
 Open `figure-editor.html`. That is the whole application — one file, no server,
-no installation. Work is auto-saved asynchronously to IndexedDB, with unchanged
-images stored only once; legacy local-storage autosaves are still read. "Save project"
-writes a `.json` containing every tab for backup.
+no installation. Each launch (or browser refresh) starts with a blank canvas.
+Work is backed up asynchronously to IndexedDB, with unchanged images stored only
+once. Backups are **not** reopened automatically: use **Help → Restore last work**
+(「說明 → 復原上次工作」) to recover them manually. Legacy local-storage backups
+are still supported. An untouched startup canvas does not overwrite the backup.
+
+**Save project** writes a `.sloth`: a PNG preview of the active tab
+with every tab, editable object, group, and original image embedded in a private
+PNG chunk. After macOS registers the updated FigureLab app, Finder Quick Look
+can display the image; double-clicking opens it in FigureLab with editable
+content. **Open project** and drag-and-drop also work. The preview uses original
+images at detail-preserving resolution, independent of export-panel settings.
+Old `.json` and `.figurelab.png` projects can still be opened and saved in the
+new format. On Macs without FigureLab, a copy renamed to `.png` can be previewed.
+
+Save before quitting. Do not edit and overwrite a project PNG in another image
+editor: it may strip the embedded project data. Use **Export** for a flattened
+image to publish or share; exported images do not include hidden layers, other
+tabs, or editable project data. Mac preview shows only the active tab at save time.
 
 ### As a macOS app
 
@@ -142,6 +158,7 @@ first time.
 figure-editor.html   the entire editor, including an inlined copy of pdf.js
 mac-app/
   main.swift         the native shell: window, menus, file panels, pinch zoom
+  Info.plist         .sloth document association and PNG-derived content type
   build.sh           compiles the binary and assembles FigureLab.app
   icon.html          the app icon, rendered to PNG and then to .icns
   icon-1024.png      rendered icon source
@@ -168,6 +185,15 @@ A few pieces were worth building carefully:
   entering and leaving the tool never degrades an image.
 - **Corner nodes** collapse the spline tangent on their side, which is what makes
   a converted rectangle stay a true rectangle.
+- **Project PNGs** use a private ancillary `flAB` chunk (unsafe-to-copy after
+  image edits), following [PNG chunk naming conventions](https://www.w3.org/TR/png-3/#5Chunk-naming-conventions).
+  The payload starts with `FigureLab\0`, version byte `1`, compression byte
+  `0` (raw) or `1` (zlib), then the UTF-8 v2 project JSON. Files are CRC-checked
+  before loading; file size and decompressed project data are limited to 512 MiB.
+- The `.sloth` extension is registered as `tw.johnnylin.figurelab.sloth`,
+  conforming to `public.png`, so macOS can use its image preview support.
+  Explicit Finder opens are queued until the editor is ready; a normal launch
+  still opens a blank canvas.
 
 ## Limitations
 

@@ -43,26 +43,7 @@ chmod +x "$OUT/Contents/MacOS/$NAME"
 echo "==> 複製編輯器"
 cp "$HTML" "$OUT/Contents/Resources/index.html"
 
-cat > "$OUT/Contents/Info.plist" <<PLIST
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>CFBundleName</key><string>FigureLab</string>
-  <key>CFBundleDisplayName</key><string>FigureLab</string>
-  <key>CFBundleExecutable</key><string>$NAME</string>
-  <key>CFBundleIdentifier</key><string>tw.johnnylin.figurelab</string>
-  <key>CFBundleIconFile</key><string>AppIcon</string>
-  <key>CFBundlePackageType</key><string>APPL</string>
-  <key>CFBundleShortVersionString</key><string>1.0</string>
-  <key>CFBundleVersion</key><string>1</string>
-  <key>LSMinimumSystemVersion</key><string>11.0</string>
-  <key>NSHighResolutionCapable</key><true/>
-  <key>NSSupportsAutomaticGraphicsSwitching</key><true/>
-  <key>NSHumanReadableCopyright</key><string>圖稿排版與標註工具</string>
-</dict>
-</plist>
-PLIST
+cp "$HERE/Info.plist" "$OUT/Contents/Info.plist"
 
 echo "==> 簽章 (ad-hoc)"
 codesign --force --deep --sign - "$OUT" 2>/dev/null || echo "    (簽章略過)"
